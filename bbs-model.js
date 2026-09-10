@@ -12,6 +12,7 @@ window.SiteQuant.bbsModel = (() => {
   const settingsKey = 'sitequant.bbs-settings.v1';
   const defaultSettings = { units: 'Metric (mm, m, kg)', grade: 'Fe 500D', cover: '25', spacing: '150', wastage: '3', reviewStatus: 'Review Required' };
   let settings = { ...defaultSettings };
+  const exportKey = 'sitequant.bbs-exports.v1'; let exportHistory = [];
   let storageIssue = '';
 
   function cleanInput(value = {}) {
@@ -80,6 +81,7 @@ window.SiteQuant.bbsModel = (() => {
   }
 
   try {
+    exportHistory = JSON.parse(localStorage.getItem(exportKey) || '[]'); if (!Array.isArray(exportHistory)) exportHistory=[];
     const storedSettings = JSON.parse(localStorage.getItem(settingsKey) || 'null');
     if (storedSettings && typeof storedSettings === 'object') settings = { ...settings, ...Object.fromEntries(Object.keys(defaultSettings).map(key => [key, String(storedSettings[key] ?? settings[key])])) };
     const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
@@ -138,6 +140,9 @@ window.SiteQuant.bbsModel = (() => {
   function saveRevision(projectId, note='') { const w=workspace(projectId), list=w.revisions ||= []; const revision=`Rev ${String(list.length).padStart(2,'0')}`; list.push({ id:crypto.randomUUID(), revision, date:new Date().toISOString(), note:String(note).slice(0,240), rows:w.rows.map(row=>({id:row.id,input:{...row.input}}) ) }); persist(); return list.at(-1); }
   function revisions(projectId){return [...(workspace(projectId).revisions||[])];}
   function compareRevisions(projectId, leftId, rightId){const list=revisions(projectId),left=list.find(x=>x.id===leftId),right=list.find(x=>x.id===rightId);if(!left||!right)return null;const L=new Map(left.rows.map(r=>[r.id,r])),R=new Map(right.rows.map(r=>[r.id,r]));const added=[],removed=[],changed=[],unchanged=[];for(const [id,row] of R){if(!L.has(id))added.push(row);else{const old=L.get(id);const fields=['dia','spacing','quantity','shape','family'];const oldC=calculate(old.input).result?.output,newC=calculate(row.input).result?.output;const changedFields=fields.filter(k=>old.input[k]!==row.input[k]);if(oldC?.cuttingLengthM!==newC?.cuttingLengthM)changedFields.push('cut length');if(oldC?.totalWeightKg!==newC?.totalWeightKg)changedFields.push('total weight');(changedFields.length?changed:unchanged).push({old,row,changedFields});}}for(const [id,row] of L)if(!R.has(id))removed.push(row);return{added,removed,changed,unchanged};}
+  function exportData(projectId,type){const a=analysis(projectId), revision=revisions(projectId).at(-1)?.revision||'Draft', info=[['Project',projectId],['Revision',revision],['Generated',new Date().toISOString()],['Engine version',window.ENGINE_VERSION||'bbs-v0.3-framework'],[]]; const map={Detailed:[['Mark','Member','Family','Shape','Dia','Spacing','Bars','Cut length m','Total length m','Weight kg'],...a.rows.map(r=>{const o=r.calculation.output,i=r.input;return[i.mark,i.memberType,i.family,i.shape,i.dia,i.spacing,o.totalBars,o.cuttingLengthM,o.totalLengthM,o.totalWeightKg]})],Summary:[['Total bars','Total length m','Total weight kg'],[a.total.bars,a.total.length,a.total.weight]],Diameter:[['Diameter','Bars','Total length m','Total weight kg'],...a.diameter.map(x=>[x.name,x.bars,x.length,x.weight])],Member:[['Member','Bars','Total length m','Total weight kg'],...a.member.map(x=>[x.name,x.bars,x.length,x.weight])],Shape:[['Shape','Bars','Total length m','Total weight kg'],...a.shape.map(x=>[x.name,x.bars,x.length,x.weight])],Family:[['Family','Bars','Total length m','Total weight kg'],...a.family.map(x=>[x.name,x.bars,x.length,x.weight])],Cutting:[['Diameter','Grade','Shape','Cut length m','Family','Required quantity','Total length m','Total weight kg'],...a.cutting.map(x=>[x.diameter,x.grade,x.shape,x.cutLength,x.family,x.quantity,x.totalLength,x.totalWeight])]};return[...info,...map[type]]}
+  function recordExport(projectId,type,records){const item={id:crypto.randomUUID(),projectId,type,revision:revisions(projectId).at(-1)?.revision||'Draft',records,generated:new Date().toISOString(),format:'CSV',status:'Generated'};exportHistory.unshift(item);try{localStorage.setItem(exportKey,JSON.stringify(exportHistory.slice(0,100)))}catch{}return item}
+  function exportsFor(projectId){return exportHistory.filter(x=>x.projectId===projectId)}
 
-  return { shapeOptions, members, families, grades, directions, defaults, storageKey, cleanInput, validate, calculate, workspace, persist, uniqueMark, newRow, calculatedRows, analysis, getSettings, saveSettings, saveRevision, revisions, compareRevisions, getStorageIssue: () => storageIssue };
+  return { shapeOptions, members, families, grades, directions, defaults, storageKey, cleanInput, validate, calculate, workspace, persist, uniqueMark, newRow, calculatedRows, analysis, getSettings, saveSettings, saveRevision, revisions, compareRevisions, exportData, recordExport, exportsFor, getStorageIssue: () => storageIssue };
 })();
