@@ -9,6 +9,9 @@ window.SiteQuant.bbsModel = (() => {
   const defaults = { memberType: 'Beam', family: 'Bottom main', mark: 'B12-01', description: 'Bottom main reinforcement', material: 'Fe 500D', revision: 'Draft', reviewStatus: 'Needs Review', length: '4.2', breadth: '0.3', depth: '0.45', cover: '25', quantity: '1', dia: '16', spacing: '150', direction: 'Longitudinal', shape: 'A', ret: '300', rise: '150', run: '150', tail: '150', stirrupWidth: '250', stirrupDepth: '400', ringDiameter: '300', hookAngle: '135', hookExtension: '160', hookExtension2: '160', ringCount: '1' };
   const storageKey = 'sitequant.bbs-workspaces.v1';
   const workspaces = new Map();
+  const settingsKey = 'sitequant.bbs-settings.v1';
+  const defaultSettings = { units: 'Metric (mm, m, kg)', grade: 'Fe 500D', cover: '25', spacing: '150', wastage: '3', reviewStatus: 'Review Required' };
+  let settings = { ...defaultSettings };
   let storageIssue = '';
 
   function cleanInput(value = {}) {
@@ -77,6 +80,8 @@ window.SiteQuant.bbsModel = (() => {
   }
 
   try {
+    const storedSettings = JSON.parse(localStorage.getItem(settingsKey) || 'null');
+    if (storedSettings && typeof storedSettings === 'object') settings = { ...settings, ...Object.fromEntries(Object.keys(defaultSettings).map(key => [key, String(storedSettings[key] ?? settings[key])])) };
     const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
     if (saved && saved.version !== 1) throw Error('Unsupported draft version');
     if (saved && !Array.isArray(saved.projects)) throw Error('Invalid draft data');
@@ -120,5 +125,19 @@ window.SiteQuant.bbsModel = (() => {
     return { id: crypto.randomUUID(), kind: 'local', input: { ...input, mark: uniqueMark(input.mark.trim(), rows) }, savedAt: new Date().toISOString() };
   }
 
-  return { shapeOptions, members, families, grades, directions, defaults, storageKey, cleanInput, validate, calculate, workspace, persist, uniqueMark, newRow, getStorageIssue: () => storageIssue };
+  function calculatedRows(projectId) { return workspace(projectId).rows.map(row => ({ ...row, calculation: calculate(row.input).result })).filter(row => row.calculation); }
+  function analysis(projectId) {
+    const rows = calculatedRows(projectId);
+    const total = rows.reduce((a,row) => { const o=row.calculation.output; a.bars+=o.totalBars;a.length+=o.totalLengthM;a.weight+=o.totalWeightKg;return a; }, { bars:0,length:0,weight:0 });
+    const group = key => Object.values(rows.reduce((a,row) => { const o=row.calculation.output, name=key==='diameter'?`${row.input.dia} mm`:key==='member'?row.input.memberType:key==='family'?row.input.family:row.input.shape; const item=a[name] ||= { name, bars:0,length:0,weight:0,rows:0 };item.bars+=o.totalBars;item.length+=o.totalLengthM;item.weight+=o.totalWeightKg;item.rows++;return a; }, {}));
+    const cutting = Object.values(rows.reduce((a,row) => { const o=row.calculation.output, key=[row.input.dia,row.input.material,row.input.shape,o.cuttingLengthM,row.input.family].join('|'); const item=a[key] ||= { diameter:row.input.dia,grade:row.input.material,shape:row.input.shape,cutLength:o.cuttingLengthM,family:row.input.family,quantity:0,totalLength:0,totalWeight:0 };item.quantity+=o.totalBars;item.totalLength+=o.totalLengthM;item.totalWeight+=o.totalWeightKg;return a; }, {}));
+    const wastage = Math.max(0, Number(settings.wastage)||0); return { rows,total,diameter:group('diameter'),member:group('member'),family:group('family'),shape:group('shape'),cutting,wastage:{ percent:wastage, allowanceKg:total.weight*wastage/100, procurementKg:total.weight*(1+wastage/100) } };
+  }
+  function getSettings(){return {...settings};}
+  function saveSettings(next){settings={...settings,...Object.fromEntries(Object.keys(defaultSettings).map(key=>[key,String(next[key]??settings[key])]))};try{localStorage.setItem(settingsKey,JSON.stringify(settings));return true}catch{return false}}
+  function saveRevision(projectId, note='') { const w=workspace(projectId), list=w.revisions ||= []; const revision=`Rev ${String(list.length).padStart(2,'0')}`; list.push({ id:crypto.randomUUID(), revision, date:new Date().toISOString(), note:String(note).slice(0,240), rows:w.rows.map(row=>({id:row.id,input:{...row.input}}) ) }); persist(); return list.at(-1); }
+  function revisions(projectId){return [...(workspace(projectId).revisions||[])];}
+  function compareRevisions(projectId, leftId, rightId){const list=revisions(projectId),left=list.find(x=>x.id===leftId),right=list.find(x=>x.id===rightId);if(!left||!right)return null;const L=new Map(left.rows.map(r=>[r.id,r])),R=new Map(right.rows.map(r=>[r.id,r]));const added=[],removed=[],changed=[],unchanged=[];for(const [id,row] of R){if(!L.has(id))added.push(row);else{const old=L.get(id);const fields=['dia','spacing','quantity','shape','family'];const oldC=calculate(old.input).result?.output,newC=calculate(row.input).result?.output;const changedFields=fields.filter(k=>old.input[k]!==row.input[k]);if(oldC?.cuttingLengthM!==newC?.cuttingLengthM)changedFields.push('cut length');if(oldC?.totalWeightKg!==newC?.totalWeightKg)changedFields.push('total weight');(changedFields.length?changed:unchanged).push({old,row,changedFields});}}for(const [id,row] of L)if(!R.has(id))removed.push(row);return{added,removed,changed,unchanged};}
+
+  return { shapeOptions, members, families, grades, directions, defaults, storageKey, cleanInput, validate, calculate, workspace, persist, uniqueMark, newRow, calculatedRows, analysis, getSettings, saveSettings, saveRevision, revisions, compareRevisions, getStorageIssue: () => storageIssue };
 })();
