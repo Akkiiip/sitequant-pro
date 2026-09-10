@@ -5,7 +5,7 @@ window.SiteQuant.bbs = (() => {
   const { icon, notify, downloadCsv } = window.SiteQuant.ui;
   let root, binding, saveTimer, workspace, project;
   let projectId = 'riverside', dashboardSelection = 'all';
-  let selected = new Set(), assessment, search = '', filter = 'all', sort = 'mark-asc';
+  let selected = new Set(), assessment, search = '', filter = 'all', sort = 'mark-asc', group = 'none';
   let pendingEditorAction = null;
   const find = selector => root?.querySelector(selector);
 
@@ -70,7 +70,7 @@ window.SiteQuant.bbs = (() => {
 
   function visibleRows() {
     const query = search.toLowerCase().trim();
-    const rows = workspace.rows.filter(row => (filter === 'all' || row.kind === filter) && `${row.input.mark} ${row.input.memberType} ${row.input.description} ${row.input.shape} ${row.input.material}`.toLowerCase().includes(query));
+    const rows = workspace.rows.filter(row => (filter === 'all' || row.kind === filter) && `${row.input.mark} ${row.input.memberType} ${row.input.family} ${row.input.description} ${row.input.shape} ${row.input.material}`.toLowerCase().includes(query));
     rows.sort((a, b) => {
       if (sort.startsWith('weight')) {
         const difference = model.calculate(a.input).result.output.totalWeightKg - model.calculate(b.input).result.output.totalWeightKg;
@@ -80,7 +80,14 @@ window.SiteQuant.bbs = (() => {
       const difference = a.input.mark.localeCompare(b.input.mark, undefined, { numeric: true });
       return sort === 'mark-desc' ? -difference : difference;
     });
+    if (group !== 'none') rows.sort((a, b) => `${group === 'member' ? a.input.memberType : group === 'dia' ? a.input.dia : a.input.shape}|${a.input.mark}`.localeCompare(`${group === 'member' ? b.input.memberType : group === 'dia' ? b.input.dia : b.input.shape}|${b.input.mark}`, undefined, { numeric: true }));
     return rows;
+  }
+
+  function summary(rows) {
+    const totals = rows.reduce((all, row) => { const o = model.calculate(row.input).result?.output; if (!o) return all; all.kg += o.totalWeightKg; all.tonnes += o.totalWeightTonnes; all.bars += o.totalBars; all.length += o.totalLengthM; return all; }, { kg: 0, tonnes: 0, bars: 0, length: 0 });
+    const grouped = key => Object.entries(rows.reduce((all, row) => { const o = model.calculate(row.input).result?.output; const name = key === 'member' ? row.input.memberType : key === 'dia' ? `Ø${row.input.dia} mm` : row.input.shape; if (o) { (all[name] ||= { kg: 0, bars: 0, length: 0 }).kg += o.totalWeightKg; all[name].bars += o.totalBars; all[name].length += o.totalLengthM; } return all; }, {})).map(([name, value]) => `<li><b>${name}</b><span>${view.format(value.kg, 2)} kg · ${value.bars} bars · ${view.format(value.length)} m</span></li>`).join('') || '<li>No calculated items.</li>';
+    find('#bbs-summaries').innerHTML = `<section><h3>Total reinforcement</h3><strong>${view.format(totals.kg, 2)} kg</strong><small>${view.format(totals.tonnes)} t · ${totals.bars} bars · ${view.format(totals.length)} m</small></section><details><summary>Member-wise</summary><ul>${grouped('member')}</ul></details><details><summary>Diameter-wise</summary><ul>${grouped('dia')}</ul></details><details><summary>Shape-wise</summary><ul>${grouped('shape')}</ul></details><section class="bbs-procurement"><h3>Procurement · planned</h3><p>Calculated kg is available above. Stock lengths, wastage allowance, nesting and net requirement need deterministic optimization rules and are not estimated here.</p></section>`;
   }
 
   function refreshSchedule() {
@@ -88,6 +95,7 @@ window.SiteQuant.bbs = (() => {
     const visible = new Set(rows.map(row => row.id));
     selected = new Set([...selected].filter(id => visible.has(id)));
     find('#bbs-schedule-body').innerHTML = view.scheduleRows(rows, selected, workspace.editingId);
+    summary(rows);
     find('#bbs-row-count').textContent = workspace.rows.length;
     find('#bbs-visible-count').textContent = `${rows.length} of ${workspace.rows.length} items · ${rows.filter(r => r.kind === 'local').length} local drafts in view`;
     find('#bbs-selection-label').textContent = selected.size ? `${selected.size} item${selected.size === 1 ? '' : 's'} selected in this view` : 'No items selected';
@@ -167,7 +175,7 @@ window.SiteQuant.bbs = (() => {
     binding?.abort();
     root = element;
     binding = new AbortController();
-    selected = new Set(); search = ''; filter = 'all'; sort = 'mark-asc';
+    selected = new Set(); search = ''; filter = 'all'; sort = 'mark-asc'; group = 'none';
     const signal = binding.signal;
     window.addEventListener('pagehide', () => { if (saveTimer) save(); }, { signal });
     document.addEventListener('visibilitychange', () => { if (document.hidden && saveTimer) save(); }, { signal });
@@ -191,6 +199,7 @@ window.SiteQuant.bbs = (() => {
       }
       if (event.target.id === 'bbs-filter') { filter = event.target.value; refreshSchedule(); }
       if (event.target.id === 'bbs-sort') { sort = event.target.value; refreshSchedule(); }
+      if (event.target.id === 'bbs-group') { group = event.target.value; refreshSchedule(); }
       if (event.target.dataset.bbsSelect) {
         const id = event.target.dataset.bbsSelect;
         event.target.checked ? selected.add(id) : selected.delete(id);
@@ -242,6 +251,12 @@ window.SiteQuant.bbs = (() => {
           break;
         }
         case 'result': find('#bbs-result-title').scrollIntoView({ block: 'center' }); find('#bbs-result-title').focus({ preventScroll: true }); break;
+      }
+    }, { signal });
+    root.addEventListener('input', event => {
+      if (event.target.id === 'bbs-shape-search') {
+        const query = event.target.value.toLowerCase();
+        root.querySelectorAll('[data-bbs-library-item]').forEach(item => { item.hidden = !item.dataset.bbsLibraryItem.includes(query); });
       }
     }, { signal });
     refreshResult(); refreshSchedule();

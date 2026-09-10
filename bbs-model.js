@@ -1,10 +1,12 @@
 /* UI validation, unit/axis adapter and local storage. Engineering maths stays in the engine. */
 window.SiteQuant.bbsModel = (() => {
-  const shapeOptions = Object.entries(SHAPES).map(([key, shape]) => ({ key, code: shape.code, name: shape.name, dimensions: shape.dimensions }));
-  const members = ['Beam', 'Column', 'Slab', 'Footing', 'Wall'];
+  const catalog = window.SiteQuant.bbsCatalog;
+  const shapeOptions = catalog.shapes;
+  const members = catalog.members;
+  const families = catalog.families;
   const grades = ['Fe 415', 'Fe 500', 'Fe 500D', 'Fe 550'];
   const directions = ['Longitudinal', 'Transverse'];
-  const defaults = { memberType: 'Beam', mark: 'B12-01', description: 'Bottom main reinforcement', material: 'Fe 500D', length: '4.2', breadth: '0.3', depth: '0.45', cover: '25', quantity: '1', dia: '16', spacing: '150', direction: 'Longitudinal', shape: 'A', ret: '300', rise: '150', run: '150', tail: '150' };
+  const defaults = { memberType: 'Beam', family: 'Bottom main', mark: 'B12-01', description: 'Bottom main reinforcement', material: 'Fe 500D', revision: 'Draft', reviewStatus: 'Needs Review', length: '4.2', breadth: '0.3', depth: '0.45', cover: '25', quantity: '1', dia: '16', spacing: '150', direction: 'Longitudinal', shape: 'A', ret: '300', rise: '150', run: '150', tail: '150', stirrupWidth: '250', stirrupDepth: '400', ringDiameter: '300', hookAngle: '135', hookExtension: '160', hookExtension2: '160', ringCount: '1' };
   const storageKey = 'sitequant.bbs-workspaces.v1';
   const workspaces = new Map();
   let storageIssue = '';
@@ -18,12 +20,14 @@ window.SiteQuant.bbsModel = (() => {
     for (const [key, label] of [['mark', 'Bar mark'], ['description', 'Description']]) {
       if (!String(input[key]).trim()) errors[key] = `${label} is required.`;
     }
-    for (const [key, options] of [['memberType', members], ['material', grades], ['direction', directions], ['shape', shapeOptions.map(s => s.code)]]) {
+    for (const [key, options] of [['memberType', members], ['family', families], ['material', grades], ['direction', directions], ['shape', shapeOptions.map(s => s.code)]]) {
       if (!options.includes(input[key])) errors[key] = 'Choose an available option.';
     }
     const fields = { length: 'Length', breadth: 'Breadth', depth: 'Depth', cover: 'Clear cover', quantity: 'Identical member quantity', dia: 'Diameter', spacing: 'Spacing' };
     if (input.shape === 'B') fields.ret = 'Return length';
     if (input.shape === 'D') Object.assign(fields, { rise: 'Crank rise', run: 'Crank run', tail: 'Tail' });
+    if (['E','F'].includes(input.shape)) Object.assign(fields, { stirrupWidth: 'Centreline width', stirrupDepth: 'Centreline depth', hookExtension: 'Hook extension 1', hookExtension2: 'Hook extension 2' });
+    if (input.shape === 'G') Object.assign(fields, { ringDiameter: 'Centreline ring diameter', hookExtension: 'Closure extension 1', hookExtension2: 'Closure extension 2', ringCount: 'Rings per member' });
     for (const [key, label] of Object.entries(fields)) {
       const raw = String(input[key]).trim();
       const number = Number(raw);
@@ -41,6 +45,8 @@ window.SiteQuant.bbsModel = (() => {
   function calculate(input) {
     const errors = validate(input);
     if (Object.keys(errors).length) return { errors, result: null };
+    const shape = catalog.byCode(input.shape);
+    if (!shape || shape.calculation !== 'engine') return { errors: { calculation: `${shape?.name || 'Selected shape'} is available in the shape library, but its calculation engine is planned. No engineering result is produced.` }, result: null, planned: true };
     // Direction rotates the in-plane input axes; it never changes an engine formula.
     const transverse = input.direction === 'Transverse';
     const lengthMm = Number(transverse ? input.breadth : input.length) * 1000;
@@ -50,8 +56,10 @@ window.SiteQuant.bbsModel = (() => {
         memberType: input.memberType, mark: input.mark.trim(), description: input.description.trim(), material: input.material,
         lengthMm, breadthMm, depthMm: Number(input.depth) * 1000, coverMm: Number(input.cover),
         diaMm: Number(input.dia), spacingMm: Number(input.spacing), memberQuantity: Number(input.quantity),
-        distributionDimensionMm: breadthMm, shape: shapeOptions.find(s => s.code === input.shape).key,
-        hooks: { returnLengthMm: Number(input.ret), crankRiseMm: Number(input.rise), crankRunMm: Number(input.run), tailMm: Number(input.tail) },
+        distributionDimensionMm: breadthMm, shape: shape.engineShape,
+        barCountPerMember: input.shape === 'G' ? Number(input.ringCount) : undefined,
+        stirrupWidthMm: Number(input.stirrupWidth), stirrupDepthMm: Number(input.stirrupDepth), ringDiameterMm: Number(input.ringDiameter),
+        hooks: { returnLengthMm: Number(input.ret), crankRiseMm: Number(input.rise), crankRunMm: Number(input.run), tailMm: Number(input.tail), hookExtensionMm: Number(input.hookExtension), hookExtension2Mm: Number(input.hookExtension2), hookAngleDeg: Number(input.hookAngle) },
       });
       if (!Object.values(result.output).every(Number.isFinite) || !Number.isSafeInteger(result.output.totalBars)) throw Error('Inputs exceed the supported numeric range.');
       return { errors: {}, result };
@@ -62,9 +70,9 @@ window.SiteQuant.bbsModel = (() => {
     if (!['riverside', 'westend', 'greenfield'].includes(projectId)) return [];
     return [
       { ...defaults, mark: 'B12-01', quantity: '8', description: 'Level 02 · beam bottom main' },
-      { ...defaults, mark: 'B12-02', quantity: '8', shape: 'B', dia: '12', description: 'Level 02 · end-support returns' },
-      { ...defaults, memberType: 'Footing', mark: 'F01-03', shape: 'C', length: '2.4', breadth: '2.4', depth: '0.6', cover: '50', quantity: '4', description: 'Footing F01 · U reinforcement' },
-      { ...defaults, memberType: 'Slab', mark: 'S02-08', shape: 'D', breadth: '3.6', depth: '0.2', dia: '10', spacing: '200', description: 'Level 02 · cranked reinforcement' },
+      { ...defaults, family: 'Extra top', mark: 'B12-02', quantity: '8', shape: 'B', dia: '12', description: 'Level 02 · end-support returns' },
+      { ...defaults, family: 'Distribution', memberType: 'Footing', mark: 'F01-03', shape: 'C', length: '2.4', breadth: '2.4', depth: '0.6', cover: '50', quantity: '4', description: 'Footing F01 · U reinforcement' },
+      { ...defaults, family: 'Curtailment', memberType: 'Slab', mark: 'S02-08', shape: 'D', breadth: '3.6', depth: '0.2', dia: '10', spacing: '200', description: 'Level 02 · cranked reinforcement' },
     ].map((input, index) => ({ id: `sample-${projectId}-${index}`, kind: 'sample', input, savedAt: '2026-09-10T10:00:00.000Z' }));
   }
 
@@ -112,5 +120,5 @@ window.SiteQuant.bbsModel = (() => {
     return { id: crypto.randomUUID(), kind: 'local', input: { ...input, mark: uniqueMark(input.mark.trim(), rows) }, savedAt: new Date().toISOString() };
   }
 
-  return { shapeOptions, members, grades, directions, defaults, storageKey, cleanInput, validate, calculate, workspace, persist, uniqueMark, newRow, getStorageIssue: () => storageIssue };
+  return { shapeOptions, members, families, grades, directions, defaults, storageKey, cleanInput, validate, calculate, workspace, persist, uniqueMark, newRow, getStorageIssue: () => storageIssue };
 })();

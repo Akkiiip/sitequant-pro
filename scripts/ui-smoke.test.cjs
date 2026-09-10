@@ -96,7 +96,7 @@ async function run() {
     await until(() => evaluate(`!!document.getElementById('sq-overview-title') && !!window.SiteQuant?.dashboard`), 'overview boot');
     assert.equal(await evaluate(`document.querySelectorAll('.sq-project-table tbody tr').length`), 3);
 
-    for (const [width, height, name] of [[1440, 1050, 'phase1-desktop'], [1024, 1000, 'phase1-tablet'], [768, 1024, 'phase1-tablet-portrait'], [390, 844, 'phase1-mobile'], [320, 740, 'phase1-small-mobile']]) {
+    for (const [width, height, name] of [[1440, 1050, 'phase1-desktop'], [1280, 1000, 'phase1-desktop-1280'], [1024, 1000, 'phase1-tablet'], [768, 1024, 'phase1-tablet-portrait'], [390, 844, 'phase1-mobile'], [320, 740, 'phase1-small-mobile']]) {
       await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
       await route('overview');
       await layout(name);
