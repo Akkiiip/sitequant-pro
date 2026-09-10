@@ -185,7 +185,9 @@ window.SiteQuant.bbs = (() => {
       const key = event.target.dataset.bbsField;
       if (key) {
         workspace.draft[key] = event.target.value;
+        if (key === 'hookExtension' && workspace.draft.linkDetailingMode === 'DRAWING_SPECIFIED') workspace.draft.hookExtension2 = event.target.value;
         workspace.editorChanged = true;
+        if (key === 'dia' && ['E','F'].includes(workspace.draft.shape)) find('#bbs-shape-parameters').innerHTML = view.parameters(workspace.draft);
         refreshResult(); scheduleSave();
       }
       if (event.target.id === 'bbs-search') { search = event.target.value; refreshSchedule(); }

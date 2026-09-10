@@ -69,6 +69,17 @@
 .bbs-drawing { background-color: #f6f9fc; border: 1px solid #e6edf3; margin: 16px 0 18px; padding: 13px 10px 9px; }
 .bbs-drawing > .bbs-diagram { max-height: 155px; }
 .bbs-drawing > p { margin: 8px 0 0; text-align: center; color: #637b92; font-size: 11px; }
+.bbs-link-primary { margin-top: 14px; }
+.bbs-link-rule, .bbs-link-summary { border-left: 2px solid #7d9abb; background: #f4f8fc; padding: 10px 12px; color: #34536f; }
+.bbs-link-rule b, .bbs-link-rule span, .bbs-link-summary b, .bbs-link-summary strong, .bbs-link-summary span { display: block; }
+.bbs-link-rule b, .bbs-link-summary b { font-size: 10px; letter-spacing: .06em; }
+.bbs-link-rule span { margin-top: 4px; font-size: 12px; line-height: 1.5; }
+.bbs-advanced-detailing { margin-top: 15px; border-top: 1px solid #e1e9f0; padding-top: 13px; }
+.bbs-advanced-detailing summary { cursor: pointer; color: #3b5c7a; font-size: 12px; font-weight: 600; }
+.bbs-advanced-detailing > p { margin: 9px 0 13px; color: #687e92; font-size: 11px; line-height: 1.55; }
+.bbs-link-summary { margin: 13px 0; }
+.bbs-link-summary strong { margin-top: 4px; color: #284a6c; font-size: 16px; }
+.bbs-link-summary span { margin-top: 3px; color: #5f7891; font-size: 12px; line-height: 1.45; }
 .bbs-dimension-readout { display: flex; justify-content: center; flex-wrap: wrap; gap: 5px 14px; padding: 0; margin: 9px 0 0; }
 .bbs-dimension-readout > div { display: flex; align-items: baseline; gap: 5px; font: 11px Consolas, monospace; }
 .bbs-dimension-readout dt { color: #637c97; }

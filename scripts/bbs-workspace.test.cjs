@@ -78,12 +78,21 @@ module.exports = async function testBbs({ evaluate, click, route, send, until, l
     assert.ok(await evaluate(`document.querySelector('.bbs-trace').textContent.includes('Cut length')`));
   }
   await click('[data-bbs-shape="E"]');
-  await control('bbs-linkDetailingMode','SEISMIC_IS13920_2016'); await set('dia','12'); await set('hookAngle','135');
-  assert.ok(await evaluate(`document.querySelector('.bbs-trace').textContent.includes('max(6 × 12, 65) = 72 mm')`));
+  assert.equal(await evaluate(`document.querySelector('.bbs-advanced-detailing').open`), false);
+  assert.ok(await evaluate(`document.querySelector('label[for="bbs-stirrupWidth"]').textContent.includes('Stirrup width')`));
+  await control('bbs-linkDetailingMode','SEISMIC_IS13920_2016'); await set('dia','8'); await set('hookAngle','135');
+  assert.ok(await evaluate(`document.querySelector('.bbs-link-rule').textContent.includes('135° hooks') && document.querySelector('.bbs-link-rule').textContent.includes('65.0 mm')`));
+  assert.ok(await evaluate(`document.querySelector('.bbs-link-summary').textContent.includes('Ø8 mm') && document.querySelector('.bbs-link-summary').textContent.includes('65.0 mm extensions')`));
+  assert.ok(await evaluate(`document.querySelector('.bbs-trace').textContent.includes('max(6 × 8, 65) = 65 mm')`));
   assert.ok(await evaluate(`document.querySelector('.bbs-link-detailing').textContent.includes('IS 13920:2016')`));
+  await evaluate(`document.querySelector('.bbs-advanced-detailing').open=true`);
   await control('bbs-linkDetailingMode','DRAWING_SPECIFIED'); await set('hookExtension','92'); await set('hookExtension2','96'); await set('bendAllowance','12');
   assert.ok(await evaluate(`document.querySelector('.bbs-trace').textContent.includes('Bend contribution / allowance = 12 mm')`));
   assert.ok(await evaluate(`!!document.getElementById('bbs-dimensionBasis')`));
+  await control('bbs-linkDetailingMode','GENERAL_IS2502_REFERENCE');
+  assert.ok(await evaluate(`document.querySelector('.bbs-link-rule').textContent.includes('not less than 8d')`));
+  await control('bbs-linkDetailingMode','CUSTOM');
+  assert.ok(await evaluate(`!!document.getElementById('bbs-hookExtension') && !!document.getElementById('bbs-hookExtension2')`));
   await evaluate(`document.querySelector('[data-bbs-shape="Q"]').click()`);
   assert.equal(await evaluate(`!!document.querySelector('[data-bbs-shape="Q"]')`), true);
   assert.equal(await evaluate(`SiteQuant.bbsModel.calculate({...SiteQuant.bbsModel.defaults,shape:'Q'}).planned`), true);
