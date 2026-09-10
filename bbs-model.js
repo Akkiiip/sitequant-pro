@@ -6,7 +6,7 @@ window.SiteQuant.bbsModel = (() => {
   const families = catalog.families;
   const grades = ['Fe 415', 'Fe 500', 'Fe 500D', 'Fe 550'];
   const directions = ['Longitudinal', 'Transverse'];
-  const defaults = { memberType: 'Beam', family: 'Bottom main', mark: 'B12-01', description: 'Bottom main reinforcement', material: 'Fe 500D', revision: 'Draft', reviewStatus: 'Needs Review', length: '4.2', breadth: '0.3', depth: '0.45', cover: '25', quantity: '1', dia: '16', spacing: '150', direction: 'Longitudinal', shape: 'A', ret: '300', rise: '150', run: '150', tail: '150', stirrupWidth: '250', stirrupDepth: '400', ringDiameter: '300', hookAngle: '135', hookExtension: '160', hookExtension2: '160', ringCount: '1' };
+  const defaults = { memberType: 'Beam', family: 'Bottom main', mark: 'B12-01', description: 'Bottom main reinforcement', material: 'Fe 500D', revision: 'Draft', reviewStatus: 'Review Required', reviewedBy: '', reviewDate: '', reviewNote: '', length: '4.2', breadth: '0.3', depth: '0.45', cover: '25', quantity: '1', dia: '16', spacing: '150', direction: 'Longitudinal', shape: 'A', ret: '300', rise: '150', run: '150', tail: '150', stirrupWidth: '250', stirrupDepth: '400', ringDiameter: '300', hookAngle: '135', hookExtension: '160', hookExtension2: '160', ringCount: '1' };
   const storageKey = 'sitequant.bbs-workspaces.v1';
   const workspaces = new Map();
   const settingsKey = 'sitequant.bbs-settings.v1';
@@ -101,7 +101,7 @@ window.SiteQuant.bbsModel = (() => {
   }
 
   function workspace(id) {
-    if (!workspaces.has(id)) workspaces.set(id, { rows: sampleRows(id), draft: { ...defaults }, editingId: null });
+    if (!workspaces.has(id)) workspaces.set(id, { rows: sampleRows(id), draft: { ...defaults, material: settings.grade, cover: settings.cover, spacing: settings.spacing, reviewStatus: settings.reviewStatus }, editingId: null });
     return workspaces.get(id);
   }
 
