@@ -3,5 +3,10 @@
   "version":"0.2.0",
   "private":true,
   "description":"SiteQuant Pro — professional BBS and BOQ workspace",
-  "scripts":{"check":"node --check app.js && node --check bbs-engine.js","test":"node bbs-engine.test.js","start":"python3 -m http.server 4173"}
+  "scripts": {
+    "check": "node --check app.js && node --check ui.js && node --check dashboard.js && node --check bbs-engine.js",
+    "test": "node bbs-engine.test.js",
+    "test:ui": "node scripts/ui-smoke.test.cjs",
+    "start": "node scripts/dev-server.cjs"
+  }
 }

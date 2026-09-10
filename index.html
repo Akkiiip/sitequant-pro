@@ -1,1 +1,67 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#07111f"><meta name="description" content="SiteQuant Pro — professional BBS and BOQ workspace"><title>SiteQuant Pro — BBS & BOQ</title><link rel="stylesheet" href="styles.css?v=6"></head><body><div class="app"><header><a class="brand" href="#">sitequant <b>PRO</b></a><span class="crumb">Engineering workspace / <strong id="crumb">Dashboard</strong></span><span class="workspace-plan">● Professional</span><span class="avatar">AK</span></header><aside><div class="label">WORKSPACE</div><button data-page="overview">Overview</button><button data-page="bbs">Bar Bending Schedule</button><button data-page="boq">BOQ Workspace</button><button data-page="projects">Projects</button><button data-page="exports">Exports</button><div class="label account">ACCOUNT</div><button data-page="pricing">Subscription</button></aside><main id="view"><section><div class="head"><div><small>SITEQUANT PRO</small><h1>Construction quantities, without the spreadsheet maze.</h1><p>Professional BBS and BOQ workflows built for engineers, detailers, QS teams and contractors.</p></div><button class="primary" data-page="bbs">Open BBS Builder →</button></div></section></main><footer>SiteQuant Pro · prototype calculation engine · engineering review required before construction issue</footer></div><script src="bbs-engine.js?v=6"></script><script src="app.js?v=6"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#111e2c">
+  <meta name="description" content="SiteQuant Pro — a project workspace for bar bending schedules, engineering review, and construction quantities.">
+  <title>Overview · SiteQuant Pro</title>
+  <link rel="stylesheet" href="styles.css?v=phase1-1">
+  <script defer src="ui.js?v=phase1-1"></script>
+  <script defer src="dashboard.js?v=phase1-1"></script>
+  <script defer src="bbs-engine.js?v=6"></script>
+  <script defer src="app.js?v=phase1-1"></script>
+</head>
+<body>
+  <a class="sq-skip-link" href="#view">Skip to workspace</a>
+  <div class="sq-shell">
+    <aside class="sq-sidebar" aria-label="Workspace navigation">
+      <a class="sq-brand" href="#/overview" aria-label="SiteQuant Pro overview">
+        <svg class="sq-brand-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M5 6h22v20H5ZM5 16h22M16 6v20" stroke="currentColor" stroke-width="1.5"/><path d="M10 2v8M22 22v8M1 11h8M23 21h8" stroke="currentColor" stroke-width="1.5"/></svg>
+        <span>SITEQUANT <b>PRO</b><small>ENGINEERING WORKSPACE</small></span>
+      </a>
+      <div class="sq-workspace-name"><span class="sq-workspace-monogram">S</span><div>SiteQuant Studio<small>Sample workspace</small></div></div>
+      <nav class="sq-nav-list" aria-label="Main navigation"></nav>
+      <div class="sq-sidebar-bottom">
+        <div class="sq-framework-label"><span class="sq-status-dot"></span>Engineering framework</div>
+        <p>Review every calculation before construction issue.</p>
+        <div class="sq-account"><span class="sq-avatar">AK</span><div>Akash Patil<small>Workspace owner · demo</small></div></div>
+      </div>
+    </aside>
+    <div class="sq-workspace">
+      <header class="sq-topbar">
+        <button class="sq-icon-button sq-menu-toggle" id="sq-menu-toggle" aria-label="Open navigation" aria-haspopup="dialog" aria-controls="sq-mobile-menu"><span data-icon="menu"></span></button>
+        <div class="sq-breadcrumb"><span>Workspace</span><span aria-hidden="true">/</span><strong id="crumb">Overview</strong></div>
+        <div class="sq-topbar-tools"><span class="sq-demo-label">SAMPLE WORKSPACE</span><a href="#/settings" class="sq-avatar sq-avatar--light" aria-label="Open workspace settings">AK</a></div>
+      </header>
+      <main class="sq-main" id="view" tabindex="-1">
+        <div class="sq-page-heading"><div><p class="sq-eyebrow">WORKSPACE</p><h1>Workspace overview</h1><p>Your projects, quantities, and next steps.</p></div></div>
+        <noscript><p class="sq-notice">Enable JavaScript to open the workspace and use BBS calculations. Engineering review required.</p></noscript>
+      </main>
+      <footer class="sq-footer"><span>SiteQuant Pro · prototype calculation engine</span><span>Engineering review required before construction issue</span></footer>
+    </div>
+  </div>
+  <dialog id="sq-mobile-menu" class="sq-dialog sq-navigation-dialog" aria-label="Workspace navigation">
+    <div class="sq-dialog-heading"><strong>SITEQUANT PRO</strong><button class="sq-icon-button" data-close-dialog aria-label="Close navigation"><span data-icon="close"></span></button></div>
+    <nav class="sq-nav-list" aria-label="Mobile navigation"></nav>
+  </dialog>
+  <dialog id="sq-project-dialog" class="sq-dialog" aria-labelledby="sq-project-dialog-title">
+    <div class="sq-dialog-heading"><div><p class="sq-eyebrow">PROJECT SETUP</p><h2 id="sq-project-dialog-title">New project</h2></div><button class="sq-icon-button" data-close-dialog aria-label="Close new project"><span data-icon="close"></span></button></div>
+    <p class="sq-dialog-description" id="sq-project-help">Create a local project draft. It is saved in this browser only; it is not shared or synced.</p>
+    <form id="sq-project-form" aria-describedby="sq-project-help">
+      <label class="sq-field">Project name <span aria-hidden="true">*</span><input name="name" required maxlength="80" placeholder="e.g. Riverside Residence" autocomplete="off"></label>
+      <div class="sq-form-grid">
+        <label class="sq-field">Location<input name="location" maxlength="80" placeholder="City, state" autocomplete="off"></label>
+        <label class="sq-field">Block / structure<input name="block" maxlength="50" placeholder="e.g. Block A" autocomplete="off"></label>
+      </div>
+      <label class="sq-field">Structural system<select name="structure"><option>RCC frame</option><option>Steel frame</option><option>Load-bearing masonry</option><option>Mixed structure</option></select></label>
+      <div class="sq-dialog-actions"><button type="button" class="sq-button sq-button--secondary" data-close-dialog>Cancel</button><button type="submit" class="sq-button sq-button--primary">Create project</button></div>
+    </form>
+  </dialog>
+  <dialog id="sq-detail-dialog" class="sq-dialog" aria-labelledby="sq-detail-title">
+    <div class="sq-dialog-heading"><h2 id="sq-detail-title">Record details</h2><button class="sq-icon-button" data-close-dialog aria-label="Close record details"><span data-icon="close"></span></button></div>
+    <div id="sq-detail-content"></div>
+  </dialog>
+  <div id="sq-status" class="sq-toast" role="status" aria-live="polite" aria-atomic="true"></div>
+</body>
+</html>
