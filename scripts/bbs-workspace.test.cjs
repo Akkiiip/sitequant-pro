@@ -55,7 +55,7 @@ module.exports = async function testBbs({ evaluate, click, route, send, until, l
     const expected = await evaluate(`calculateBbs({memberType:'Beam',mark:'QA-B01',description:'Checked browser test member',material:'Fe 500',lengthMm:6000,breadthMm:400,depthMm:600,coverMm:30,diaMm:20,spacingMm:100,memberQuantity:3,distributionDimensionMm:400,shape:'${engineShape}',hooks:{returnLengthMm:500,crankRiseMm:220,crankRunMm:320,tailMm:180}})`);
     for (const key of ['barsPerMember', 'totalBars', 'cuttingLengthM', 'unitWeightKgPerM', 'totalLengthM', 'totalWeightKg', 'totalWeightTonnes']) assert.equal(Number(await metric(key)), expected.output[key], `${code}/${key} must match the engine`);
     assert.deepEqual(await evaluate(`Array.from(document.querySelectorAll('.bbs-trace li'),e=>e.textContent)`), expected.trace);
-    assert.ok(await evaluate(`document.querySelector('.bbs-engine-metadata').textContent.includes('bbs-v0.3-framework')`));
+    assert.ok(await evaluate(`document.querySelector('.bbs-engine-metadata').textContent.includes('bbs-v0.4-link-detailing')`));
     assert.ok(await evaluate(`document.querySelector('.bbs-standard-status').textContent.includes('engineering review required')`));
     assert.equal(await evaluate(`document.querySelectorAll('.bbs-dimension-readout > div').length`), Object.keys(expected.input.dimensionsMm).length);
   }
@@ -73,10 +73,17 @@ module.exports = async function testBbs({ evaluate, click, route, send, until, l
     assert.equal(await evaluate(`document.querySelector('[data-bbs-shape="${code}"]').getAttribute('aria-pressed')`), 'true');
     if (code === 'G') { await set('ringDiameter','300'); await set('ringCount','3'); }
     else { await set('stirrupWidth','250'); await set('stirrupDepth','450'); }
-    await set('hookExtension','80'); await set('hookExtension2','80');
+    if (code === 'G') { await set('hookExtension','80'); await set('hookExtension2','80'); }
     assert.ok(Number(await metric('cuttingLengthM')) > 0, `${code} has a live engine result`);
     assert.ok(await evaluate(`document.querySelector('.bbs-trace').textContent.includes('Cut length')`));
   }
+  await click('[data-bbs-shape="E"]');
+  await control('bbs-linkDetailingMode','SEISMIC_IS13920_2016'); await set('dia','12'); await set('hookAngle','135');
+  assert.ok(await evaluate(`document.querySelector('.bbs-trace').textContent.includes('max(6 × 12, 65) = 72 mm')`));
+  assert.ok(await evaluate(`document.querySelector('.bbs-link-detailing').textContent.includes('IS 13920:2016')`));
+  await control('bbs-linkDetailingMode','DRAWING_SPECIFIED'); await set('hookExtension','92'); await set('hookExtension2','96'); await set('bendAllowance','12');
+  assert.ok(await evaluate(`document.querySelector('.bbs-trace').textContent.includes('Bend contribution / allowance = 12 mm')`));
+  assert.ok(await evaluate(`!!document.getElementById('bbs-dimensionBasis')`));
   await evaluate(`document.querySelector('[data-bbs-shape="Q"]').click()`);
   assert.equal(await evaluate(`!!document.querySelector('[data-bbs-shape="Q"]')`), true);
   assert.equal(await evaluate(`SiteQuant.bbsModel.calculate({...SiteQuant.bbsModel.defaults,shape:'Q'}).planned`), true);
@@ -121,7 +128,7 @@ module.exports = async function testBbs({ evaluate, click, route, send, until, l
   const csv = await file('SiteQuant_QA-B01_BBS.csv');
   assert.equal(csv.split('\n')[0], expectedHeader);
   assert.ok(csv.includes('QA-B01,Beam,Straight,20,20,5.94'));
-  assert.ok(csv.includes('bbs-v0.3-framework'));
+  assert.ok(csv.includes('bbs-v0.4-link-detailing'));
   await click('#bbs-duplicate');
   assert.equal(await count(), 6);
   assert.equal(await evaluate(`document.querySelector('.bbs-row--selected .bbs-mark-link').textContent`), 'QA-B01-2');

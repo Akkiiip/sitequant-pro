@@ -191,6 +191,13 @@ window.SiteQuant.bbs = (() => {
       if (event.target.id === 'bbs-search') { search = event.target.value; refreshSchedule(); }
     }, { signal });
     root.addEventListener('change', event => {
+      const fieldKey = event.target.dataset.bbsField;
+      if (fieldKey) {
+        workspace.draft[fieldKey] = event.target.value;
+        workspace.editorChanged = true;
+        if (['linkDetailingMode','dimensionBasis'].includes(fieldKey)) find('#bbs-shape-parameters').innerHTML = view.parameters(workspace.draft);
+        refreshResult(); scheduleSave();
+      }
       if (event.target.id === 'bbs-project') {
         save();
         projectId = event.target.value;

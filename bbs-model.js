@@ -6,7 +6,7 @@ window.SiteQuant.bbsModel = (() => {
   const families = catalog.families;
   const grades = ['Fe 415', 'Fe 500', 'Fe 500D', 'Fe 550'];
   const directions = ['Longitudinal', 'Transverse'];
-  const defaults = { memberType: 'Beam', family: 'Bottom main', mark: 'B12-01', description: 'Bottom main reinforcement', material: 'Fe 500D', revision: 'Draft', reviewStatus: 'Review Required', reviewedBy: '', reviewDate: '', reviewNote: '', length: '4.2', breadth: '0.3', depth: '0.45', cover: '25', quantity: '1', dia: '16', spacing: '150', direction: 'Longitudinal', shape: 'A', ret: '300', rise: '150', run: '150', tail: '150', stirrupWidth: '250', stirrupDepth: '400', ringDiameter: '300', hookAngle: '135', hookExtension: '160', hookExtension2: '160', ringCount: '1' };
+  const defaults = { memberType: 'Beam', family: 'Bottom main', mark: 'B12-01', description: 'Bottom main reinforcement', material: 'Fe 500D', revision: 'Draft', reviewStatus: 'Review Required', reviewedBy: '', reviewDate: '', reviewNote: '', length: '4.2', breadth: '0.3', depth: '0.45', cover: '25', quantity: '1', dia: '16', spacing: '150', direction: 'Longitudinal', shape: 'A', ret: '300', rise: '150', run: '150', tail: '150', stirrupWidth: '250', stirrupDepth: '400', ringDiameter: '300', linkDetailingMode: 'SEISMIC_IS13920_2016', dimensionBasis: 'CENTRELINE', hookAngle: '135', hookExtension: '160', hookExtension2: '160', hookCount: '2', bendCount: '4', bendAllowance: '0', ringCount: '1' };
   const storageKey = 'sitequant.bbs-workspaces.v1';
   const workspaces = new Map();
   const settingsKey = 'sitequant.bbs-settings.v1';
@@ -30,15 +30,21 @@ window.SiteQuant.bbsModel = (() => {
     const fields = { length: 'Length', breadth: 'Breadth', depth: 'Depth', cover: 'Clear cover', quantity: 'Identical member quantity', dia: 'Diameter', spacing: 'Spacing' };
     if (input.shape === 'B') fields.ret = 'Return length';
     if (input.shape === 'D') Object.assign(fields, { rise: 'Crank rise', run: 'Crank run', tail: 'Tail' });
-    if (['E','F'].includes(input.shape)) Object.assign(fields, { stirrupWidth: 'Centreline width', stirrupDepth: 'Centreline depth', hookExtension: 'Hook extension 1', hookExtension2: 'Hook extension 2' });
+    if (['E','F'].includes(input.shape)) {
+      Object.assign(fields, { stirrupWidth: 'Link width', stirrupDepth: 'Link depth', hookAngle: 'Hook angle', hookCount: 'Hook count', bendCount: 'Bend count', bendAllowance: 'Bend contribution / allowance' });
+      if (['DRAWING_SPECIFIED','CUSTOM','GENERAL_IS2502_REFERENCE'].includes(input.linkDetailingMode)) Object.assign(fields, { hookExtension: 'Hook extension 1', hookExtension2: 'Hook extension 2' });
+      if (!['GENERAL_IS2502_REFERENCE','SEISMIC_IS13920_2016','DRAWING_SPECIFIED','CUSTOM'].includes(input.linkDetailingMode)) errors.linkDetailingMode = 'Choose a supported detailing basis.';
+      if (!['CENTRELINE','INNER','OUTER','DRAWING_SPECIFIED'].includes(input.dimensionBasis)) errors.dimensionBasis = 'Choose a supported dimension basis.';
+      if (input.linkDetailingMode === 'SEISMIC_IS13920_2016' && Number(input.hookAngle) !== 135) errors.hookAngle = 'Seismic link detailing requires a 135° hook.';
+    }
     if (input.shape === 'G') Object.assign(fields, { ringDiameter: 'Centreline ring diameter', hookExtension: 'Closure extension 1', hookExtension2: 'Closure extension 2', ringCount: 'Rings per member' });
     for (const [key, label] of Object.entries(fields)) {
       const raw = String(input[key]).trim();
       const number = Number(raw);
       if (!raw) errors[key] = `${label} is required.`;
       else if (!Number.isFinite(number)) errors[key] = `Enter a numeric ${label.toLowerCase()}.`;
-      else if (number < 0 || (number === 0 && key !== 'cover')) errors[key] = key === 'cover' ? 'Cover cannot be negative.' : `${label} must be greater than zero.`;
-      else if (key === 'quantity' && (!Number.isSafeInteger(number) || number < 1)) errors[key] = 'Enter a whole number of members (at least 1).';
+      else if (number < 0 || (number === 0 && !['cover','bendAllowance','bendCount'].includes(key))) errors[key] = key === 'cover' ? 'Cover cannot be negative.' : `${label} must be greater than zero.`;
+      else if ((key === 'quantity' || key === 'hookCount' || key === 'bendCount') && (!Number.isSafeInteger(number) || number < (key === 'bendCount' ? 0 : 1))) errors[key] = `Enter a whole number of ${key === 'quantity' ? 'members' : key === 'hookCount' ? 'hooks' : 'bends'} (at least ${key === 'bendCount' ? 0 : 1}).`;
     }
     if (!errors.cover && ['length', 'breadth', 'depth'].every(k => !errors[k])) {
       if (['length', 'breadth', 'depth'].some(k => Number(input.cover) * 2 >= Number(input[k]) * 1000)) errors.cover = 'Cover must leave a positive clear dimension in every member direction.';
@@ -62,8 +68,8 @@ window.SiteQuant.bbsModel = (() => {
         diaMm: Number(input.dia), spacingMm: Number(input.spacing), memberQuantity: Number(input.quantity),
         distributionDimensionMm: breadthMm, shape: shape.engineShape,
         barCountPerMember: input.shape === 'G' ? Number(input.ringCount) : undefined,
-        stirrupWidthMm: Number(input.stirrupWidth), stirrupDepthMm: Number(input.stirrupDepth), ringDiameterMm: Number(input.ringDiameter),
-        hooks: { returnLengthMm: Number(input.ret), crankRiseMm: Number(input.rise), crankRunMm: Number(input.run), tailMm: Number(input.tail), hookExtensionMm: Number(input.hookExtension), hookExtension2Mm: Number(input.hookExtension2), hookAngleDeg: Number(input.hookAngle) },
+        stirrupWidthMm: Number(input.stirrupWidth), stirrupDepthMm: Number(input.stirrupDepth), ringDiameterMm: Number(input.ringDiameter), linkDetailingMode: input.linkDetailingMode, dimensionBasis: input.dimensionBasis,
+        hooks: { returnLengthMm: Number(input.ret), crankRiseMm: Number(input.rise), crankRunMm: Number(input.run), tailMm: Number(input.tail), hookExtensionMm: Number(input.hookExtension), hookExtension2Mm: Number(input.hookExtension2), hookAngleDeg: Number(input.hookAngle), hookCount: Number(input.hookCount), bendCount: Number(input.bendCount), bendAllowanceMm: Number(input.bendAllowance) },
       });
       if (!Object.values(result.output).every(Number.isFinite) || !Number.isSafeInteger(result.output.totalBars)) throw Error('Inputs exceed the supported numeric range.');
       return { errors: {}, result };
