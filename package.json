@@ -4,7 +4,7 @@
   "private":true,
   "description":"SiteQuant Pro — professional BBS and BOQ workspace",
   "scripts": {
-    "check": "node --check app.js && node --check ui.js && node --check dashboard.js && node --check bbs-engine.js",
+    "check": "node --check app.js && node --check ui.js && node --check dashboard.js && node --check bbs-model.js && node --check bbs-view.js && node --check bbs-workspace.js && node --check bbs-engine.js",
     "test": "node bbs-engine.test.js",
     "test:ui": "node scripts/ui-smoke.test.cjs",
     "start": "node scripts/dev-server.cjs"

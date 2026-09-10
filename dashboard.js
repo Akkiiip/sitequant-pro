@@ -168,5 +168,6 @@ window.SiteQuant.dashboard = (() => {
     });
   }
 
-  return { render, init };
+  // Context accessors for workspaces; dashboard presentation remains unchanged.
+  return { render, init, getProjects: () => projects().map(project => ({ ...project })), getSelectedProjectId: () => selectedId };
 })();

@@ -28,7 +28,7 @@ async function run() {
   if (screenshots) fs.mkdirSync(screenshots, { recursive: true });
   const server = createServer();
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  const base = `http://127.0.0.1:${server.address().port}`;
+  const base = process.env.SITEQUANT_TEST_URL || `http://127.0.0.1:${server.address().port}`;
   const child = spawn(browserPath, ['--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check', '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank'], { windowsHide: true, stdio: 'ignore' });
   let socket;
   let send;
@@ -144,29 +144,7 @@ async function run() {
     assert.equal(await evaluate(`document.querySelectorAll('.sq-project-table tbody tr').length`), 4);
     console.log('PASS project filter, review/export details, validation, safe rendering, empty state and local persistence');
 
-    await route('bbs');
-    assert.equal(await evaluate(`document.querySelector('.big b').textContent`), '2');
-    for (const shape of ['A', 'B', 'C', 'D']) {
-      await click(`[data-shape="${shape}"]`);
-      assert.equal(await evaluate(`document.querySelector('[data-shape="${shape}"]').getAttribute('aria-pressed')`), 'true');
-      assert.ok(await evaluate(`document.querySelector('.standard').textContent.includes('bbs-v0.2-framework')`));
-      assert.ok(await evaluate(`document.querySelector('.result ol').textContent.includes('Total weight')`));
-    }
-    await click('[data-shape="A"]');
-    await evaluate(`const q=document.querySelector('[data-k="quantity"]');q.value='3';q.dispatchEvent(new Event('change',{bubbles:true}))`);
-    assert.equal(await evaluate(`document.querySelector('.big b').textContent`), '6');
-    await evaluate(`const s=document.querySelector('[data-k="spacing"]');s.value='0';s.dispatchEvent(new Event('change',{bubbles:true}))`);
-    assert.equal(await evaluate(`document.querySelector('[data-k="spacing"]').value`), '150');
-    await click('#csv');
-    const downloaded = path.join(downloads, 'SiteQuant_B12-01_BBS.csv');
-    await until(() => fs.existsSync(downloaded), 'CSV download');
-    const csv = fs.readFileSync(downloaded, 'utf8');
-    assert.ok(csv.includes('Formula Version'));
-    assert.ok(csv.includes('B12-01,Beam,Straight,16,6,4.15'));
-    assert.ok(csv.includes('bbs-v0.2-framework'));
-    await send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1050, deviceScaleFactor: 1, mobile: false });
-    await screenshot('phase1-bbs-regression');
-    console.log('PASS BBS shapes, engine trace/version, live quantity update, invalid-spacing recovery and actual CSV download');
+    await require("./bbs-workspace.test.cjs")({evaluate,click,route,send,until,layout,screenshot,downloads});
     assert.deepEqual(errors, [], 'No runtime exceptions or console errors');
     console.log('PASS no console errors');
     console.log(screenshots ? `Screenshots: ${screenshots}` : 'Set SCREENSHOT_DIR to retain rendered screenshots.');
