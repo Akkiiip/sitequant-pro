@@ -3,3 +3,17 @@
 .bbs-u-shape-note strong{font-size:10px;letter-spacing:.08em;color:#2f5577;white-space:nowrap}
 .bbs-u-shape-note span{flex:1;min-width:220px}
 .bbs-shape[data-bbs-shape="I"]{background:#fbfdff}
+
+/* Keep the calculation result available without reserving a permanent side rail. */
+.bbs-result--collapsed{padding:12px 15px}
+.bbs-result--collapsed .bbs-result-heading{margin:0}
+.bbs-result--collapsed #bbs-result-details{display:none}
+.bbs-result-toggle{display:inline-flex;align-items:center;gap:8px;border:0;background:transparent;color:#365c7e;font:600 12px/1.2 inherit;padding:5px 2px;cursor:pointer}
+.bbs-result-toggle:hover{color:#1e456b}
+.bbs-result-toggle span:last-child{font-size:18px;line-height:12px;transition:transform .16s ease}
+.bbs-result--expanded .bbs-result-toggle span:last-child{transform:translateX(-1px)}
+.bbs-result-details{margin-top:12px}
+@media (min-width: 901px){
+  .bbs-engineering-layout:has(.bbs-result--collapsed){grid-template-columns:minmax(0,1fr)}
+  .bbs-result--collapsed{position:static}
+}
