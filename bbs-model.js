@@ -16,7 +16,16 @@ window.SiteQuant.bbsModel = (() => {
   let storageIssue = '';
 
   function cleanInput(value = {}) {
-    return Object.fromEntries(Object.entries(defaults).map(([key, fallback]) => [key, typeof value[key] === 'string' || typeof value[key] === 'number' ? String(value[key]).slice(0, key === 'description' ? 240 : 80) : fallback]));
+    const input = Object.fromEntries(Object.entries(defaults).map(([key, fallback]) => [key, typeof value[key] === 'string' || typeof value[key] === 'number' ? String(value[key]).slice(0, key === 'description' ? 240 : 80) : fallback]));
+    if (['C','I'].includes(input.shape)) {
+      const coverMm = Number(input.cover) || 0;
+      const lengthMm = (Number(input.length) || 0) * 1000;
+      const depthMm = (Number(input.depth) || 0) * 1000;
+      if (value.uBaseLength === undefined) input.uBaseLength = String(Math.max(1, lengthMm - 2 * coverMm));
+      if (value.uLeg1 === undefined) input.uLeg1 = String(Math.max(1, depthMm - 2 * coverMm));
+      if (value.uLeg2 === undefined) input.uLeg2 = String(Math.max(1, depthMm - 2 * coverMm));
+    }
+    return input;
   }
 
   function validate(input) {
@@ -108,29 +117,12 @@ window.SiteQuant.bbsModel = (() => {
     storageIssue = 'Saved BBS data could not be read. It has not been overwritten. Export or recover your stored data before saving a new workspace.';
   }
 
-  function workspace(id) {
-    if (!workspaces.has(id)) workspaces.set(id, { rows: sampleRows(id), draft: { ...defaults, material: settings.grade, cover: settings.cover, spacing: settings.spacing, reviewStatus: settings.reviewStatus }, editingId: null });
-    return workspaces.get(id);
-  }
-
-  function persist() {
-    if (storageIssue) return { saved: false, message: storageIssue };
-    try {
-      localStorage.setItem(storageKey, JSON.stringify({ version: 1, projects: [...workspaces].map(([id, data]) => ({ id, ...data })) }));
-      return { saved: true, message: 'Draft saved in this browser only.' };
-    } catch { return { saved: false, message: 'Browser storage is unavailable or full. Changes are in memory only and will be lost on reload. Export valid items to keep a copy.' }; }
-  }
-
+  function workspace(id) { if (!workspaces.has(id)) workspaces.set(id, { rows: sampleRows(id), draft: { ...defaults, material: settings.grade, cover: settings.cover, spacing: settings.spacing, reviewStatus: settings.reviewStatus }, editingId: null }); return workspaces.get(id); }
+  function persist() { if (storageIssue) return { saved: false, message: storageIssue }; try { localStorage.setItem(storageKey, JSON.stringify({ version: 1, projects: [...workspaces].map(([id, data]) => ({ id, ...data })) })); return { saved: true, message: 'Draft saved in this browser only.' }; } catch { return { saved: false, message: 'Browser storage is unavailable or full. Changes are in memory only and will be lost on reload. Export valid items to keep a copy.' }; } }
   function uniqueMark(mark, rows) { const used = new Set(rows.map(row => row.input.mark.toLowerCase())); let candidate = mark, index = 2; while (used.has(candidate.toLowerCase())) candidate = `${mark}-${index++}`; return candidate; }
   function newRow(input, rows) { return { id: crypto.randomUUID(), kind: 'local', input: { ...input, mark: uniqueMark(input.mark.trim(), rows) }, savedAt: new Date().toISOString() }; }
   function calculatedRows(projectId) { return workspace(projectId).rows.map(row => ({ ...row, calculation: calculate(row.input).result })).filter(row => row.calculation); }
-  function analysis(projectId) {
-    const rows = calculatedRows(projectId);
-    const total = rows.reduce((a,row) => { const o=row.calculation.output; a.bars+=o.totalBars;a.length+=o.totalLengthM;a.weight+=o.totalWeightKg;return a; }, { bars:0,length:0,weight:0 });
-    const group = key => Object.values(rows.reduce((a,row) => { const o=row.calculation.output, name=key==='diameter'?`${row.input.dia} mm`:key==='member'?row.input.memberType:key==='family'?row.input.family:row.input.shape; const item=a[name] ||= { name, bars:0,length:0,weight:0,rows:0 };item.bars+=o.totalBars;item.length+=o.totalLengthM;item.weight+=o.totalWeightKg;item.rows++;return a; }, {}));
-    const cutting = Object.values(rows.reduce((a,row) => { const o=row.calculation.output, key=[row.input.dia,row.input.material,row.input.shape,o.cuttingLengthM,row.input.family].join('|'); const item=a[key] ||= { diameter:row.input.dia,grade:row.input.material,shape:row.input.shape,cutLength:o.cuttingLengthM,family:row.input.family,quantity:0,totalLength:0,totalWeight:0 };item.quantity+=o.totalBars;item.totalLength+=o.totalLengthM;item.totalWeight+=o.totalWeightKg;return a; }, {}));
-    const wastage = Math.max(0, Number(settings.wastage)||0); return { rows,total,diameter:group('diameter'),member:group('member'),family:group('family'),shape:group('shape'),cutting,wastage:{ percent:wastage, allowanceKg:total.weight*wastage/100, procurementKg:total.weight*(1+wastage/100) } };
-  }
+  function analysis(projectId) { const rows = calculatedRows(projectId); const total = rows.reduce((a,row) => { const o=row.calculation.output; a.bars+=o.totalBars;a.length+=o.totalLengthM;a.weight+=o.totalWeightKg;return a; }, { bars:0,length:0,weight:0 }); const group = key => Object.values(rows.reduce((a,row) => { const o=row.calculation.output, name=key==='diameter'?`${row.input.dia} mm`:key==='member'?row.input.memberType:key==='family'?row.input.family:row.input.shape; const item=a[name] ||= { name, bars:0,length:0,weight:0,rows:0 };item.bars+=o.totalBars;item.length+=o.totalLengthM;item.weight+=o.totalWeightKg;item.rows++;return a; }, {})); const cutting = Object.values(rows.reduce((a,row) => { const o=row.calculation.output, key=[row.input.dia,row.input.material,row.input.shape,o.cuttingLengthM,row.input.family].join('|'); const item=a[key] ||= { diameter:row.input.dia,grade:row.input.material,shape:row.input.shape,cutLength:o.cuttingLengthM,family:row.input.family,quantity:0,totalLength:0,totalWeight:0 };item.quantity+=o.totalBars;item.totalLength+=o.totalLengthM;item.totalWeight+=o.totalWeightKg;return a; }, {})); const wastage = Math.max(0, Number(settings.wastage)||0); return { rows,total,diameter:group('diameter'),member:group('member'),family:group('family'),shape:group('shape'),cutting,wastage:{ percent:wastage, allowanceKg:total.weight*wastage/100, procurementKg:total.weight*(1+wastage/100) } }; }
   function getSettings(){return {...settings};}
   function saveSettings(next){settings={...settings,...Object.fromEntries(Object.keys(defaultSettings).map(key=>[key,String(next[key]??settings[key])]))};try{localStorage.setItem(settingsKey,JSON.stringify(settings));return true}catch{return false}}
   function saveRevision(projectId, note='') { const w=workspace(projectId), list=w.revisions ||= []; const revision=`Rev ${String(list.length).padStart(2,'0')}`; list.push({ id:crypto.randomUUID(), revision, date:new Date().toISOString(), note:String(note).slice(0,240), rows:w.rows.map(row=>({id:row.id,input:{...row.input}}) ) }); persist(); return list.at(-1); }
