@@ -1,0 +1,5 @@
+.bbs-u-shape-fields{display:block}
+.bbs-u-shape-note{display:flex;flex-wrap:wrap;gap:8px 12px;margin-top:12px;padding:10px 12px;border-left:2px solid #7d9abb;background:#f4f8fc;color:#49657f;font-size:12px;line-height:1.55}
+.bbs-u-shape-note strong{font-size:10px;letter-spacing:.08em;color:#2f5577;white-space:nowrap}
+.bbs-u-shape-note span{flex:1;min-width:220px}
+.bbs-shape[data-bbs-shape="I"]{background:#fbfdff}
