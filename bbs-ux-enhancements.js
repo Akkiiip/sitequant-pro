@@ -32,6 +32,45 @@
       const labels = ['Base', 'Leg 1', 'Leg 2'];
       if (readout) [...readout.querySelectorAll('dt')].forEach((dt, index) => { const next = labels[index]; if (next && dt.textContent !== next) dt.textContent = next; });
     }
+
+    // Live calculation is useful, but it should never compete with the shape drawing.
+    // Keep it available behind a lightweight arrow toggle and collapse the right rail by default.
+    const result = root.querySelector('.bbs-result');
+    if (result && !result.dataset.compactToggle) {
+      result.dataset.compactToggle = 'true';
+      const heading = result.querySelector('.bbs-result-heading');
+      if (heading) {
+        const eyebrow = heading.querySelector('.sq-eyebrow');
+        if (eyebrow) eyebrow.textContent = 'CALCULATION RESULT';
+        let toggle = heading.querySelector('[data-bbs-result-toggle]');
+        if (!toggle) {
+          toggle = document.createElement('button');
+          toggle.type = 'button';
+          toggle.className = 'bbs-result-toggle';
+          toggle.dataset.bbsResultToggle = 'true';
+          toggle.setAttribute('aria-expanded', 'false');
+          toggle.setAttribute('aria-controls', 'bbs-result-details');
+          toggle.innerHTML = '<span>Details</span><span aria-hidden="true">›</span>';
+          heading.appendChild(toggle);
+        }
+        const details = [...result.children].filter(node => node !== heading);
+        let detailHost = result.querySelector('#bbs-result-details');
+        if (!detailHost) {
+          detailHost = document.createElement('div');
+          detailHost.id = 'bbs-result-details';
+          detailHost.className = 'bbs-result-details';
+          details.forEach(node => detailHost.appendChild(node));
+          result.appendChild(detailHost);
+        }
+        result.classList.add('bbs-result--collapsed');
+        toggle.onclick = () => {
+          const open = result.classList.toggle('bbs-result--expanded');
+          result.classList.toggle('bbs-result--collapsed', !open);
+          toggle.setAttribute('aria-expanded', String(open));
+          toggle.innerHTML = `<span>${open ? 'Hide' : 'Details'}</span><span aria-hidden="true">${open ? '‹' : '›'}</span>`;
+        };
+      }
+    }
   };
   const syncFamily = button => {
     const map = { E: 'Stirrups', F: 'Column ties', G: 'Column ties' };
