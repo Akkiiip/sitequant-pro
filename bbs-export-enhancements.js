@@ -1,4 +1,4 @@
-/* Export semantics: make CSV shape labels human-readable and preserve U/inverted-U identity. */
+/* Export semantics: make BBS CSV shape fields explicit and preserve U/inverted-U identity. */
 (() => {
   const boot = () => {
     const model = window.SiteQuant?.bbsModel;
@@ -11,20 +11,17 @@
         const labels = {
           A: 'Straight bar (A)',
           B: 'L-bar (B)',
-          C: 'U-bar (C)',
-          I: 'Inverted U-bar (I)',
+          C: 'U-bar (C) — Base + Leg 1 + Leg 2',
+          I: 'Inverted U-bar (I) — Base + Leg 1 + Leg 2',
           D: 'Bent-up / cranked bar (D)',
           E: 'Rectangular stirrup / link (E)',
           F: 'Closed column link / tie (F)',
           G: 'Circular ring (G)'
         };
+        const exportLabel = labels[originalShape] || assessment.result.input.shapeName || originalShape;
         assessment.result.input.originalShapeCode = originalShape;
-        assessment.result.input.exportShapeLabel = labels[originalShape] || assessment.result.input.shapeName || originalShape;
-        if (['C', 'I'].includes(originalShape)) {
-          assessment.result.input.exportShapeGeometry = originalShape === 'I'
-            ? 'Inverted U: Base + Leg 1 + Leg 2'
-            : 'U: Base + Leg 1 + Leg 2';
-        }
+        assessment.result.input.exportShapeLabel = exportLabel;
+        assessment.result.input.shapeName = exportLabel;
       }
       return assessment;
     };
