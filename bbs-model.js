@@ -6,7 +6,7 @@ window.SiteQuant.bbsModel = (() => {
   const families = catalog.families;
   const grades = ['Fe 415', 'Fe 500', 'Fe 500D', 'Fe 550'];
   const directions = ['Longitudinal', 'Transverse'];
-  const defaults = { memberType: 'Beam', family: 'Bottom main', mark: 'B12-01', description: 'Bottom main reinforcement', material: 'Fe 500D', revision: 'Draft', reviewStatus: 'Review Required', reviewedBy: '', reviewDate: '', reviewNote: '', length: '4.2', breadth: '0.3', depth: '0.45', cover: '25', quantity: '1', dia: '16', spacing: '150', direction: 'Longitudinal', shape: 'A', ret: '300', rise: '150', run: '150', tail: '150', stirrupWidth: '250', stirrupDepth: '400', ringDiameter: '300', linkDetailingMode: 'SEISMIC_IS13920_2016', dimensionBasis: 'CENTRELINE', hookAngle: '135', hookExtension: '160', hookExtension2: '160', hookCount: '2', bendCount: '4', bendAllowance: '0', ringCount: '1' };
+  const defaults = { memberType: 'Beam', family: 'Bottom main', mark: 'B12-01', description: 'Bottom main reinforcement', material: 'Fe 500D', revision: 'Draft', reviewStatus: 'Review Required', reviewedBy: '', reviewDate: '', reviewNote: '', length: '4.2', breadth: '0.3', depth: '0.45', cover: '25', quantity: '1', dia: '16', spacing: '150', direction: 'Longitudinal', shape: 'A', ret: '300', rise: '150', run: '150', tail: '150', uBaseLength: '4150', uLeg1: '400', uLeg2: '400', stirrupWidth: '250', stirrupDepth: '400', ringDiameter: '300', linkDetailingMode: 'SEISMIC_IS13920_2016', dimensionBasis: 'CENTRELINE', hookAngle: '135', hookExtension: '160', hookExtension2: '160', hookCount: '2', bendCount: '4', bendAllowance: '0', ringCount: '1' };
   const storageKey = 'sitequant.bbs-workspaces.v1';
   const workspaces = new Map();
   const settingsKey = 'sitequant.bbs-settings.v1';
@@ -29,6 +29,7 @@ window.SiteQuant.bbsModel = (() => {
     }
     const fields = { length: 'Length', breadth: 'Breadth', depth: 'Depth', cover: 'Clear cover', quantity: 'Identical member quantity', dia: 'Diameter', spacing: 'Spacing' };
     if (input.shape === 'B') fields.ret = 'Return length';
+    if (['C','I'].includes(input.shape)) Object.assign(fields, { uBaseLength: 'Base length', uLeg1: 'Leg 1 length', uLeg2: 'Leg 2 length' });
     if (input.shape === 'D') Object.assign(fields, { rise: 'Crank rise', run: 'Crank run', tail: 'Tail' });
     if (['E','F'].includes(input.shape)) {
       Object.assign(fields, { stirrupWidth: 'Link width', stirrupDepth: 'Link depth', hookAngle: 'Hook angle', hookCount: 'Hook count', bendCount: 'Bend count', bendAllowance: 'Bend contribution / allowance' });
@@ -57,7 +58,6 @@ window.SiteQuant.bbsModel = (() => {
     if (Object.keys(errors).length) return { errors, result: null };
     const shape = catalog.byCode(input.shape);
     if (!shape || shape.calculation !== 'engine') return { errors: { calculation: `${shape?.name || 'Selected shape'} is available in the shape library, but its calculation engine is planned. No engineering result is produced.` }, result: null, planned: true };
-    // Direction rotates the in-plane input axes; it never changes an engine formula.
     const transverse = input.direction === 'Transverse';
     const lengthMm = Number(transverse ? input.breadth : input.length) * 1000;
     const breadthMm = Number(transverse ? input.length : input.breadth) * 1000;
@@ -69,7 +69,7 @@ window.SiteQuant.bbsModel = (() => {
         distributionDimensionMm: breadthMm, shape: shape.engineShape,
         barCountPerMember: input.shape === 'G' ? Number(input.ringCount) : undefined,
         stirrupWidthMm: Number(input.stirrupWidth), stirrupDepthMm: Number(input.stirrupDepth), ringDiameterMm: Number(input.ringDiameter), linkDetailingMode: input.linkDetailingMode, dimensionBasis: input.dimensionBasis,
-        hooks: { returnLengthMm: Number(input.ret), crankRiseMm: Number(input.rise), crankRunMm: Number(input.run), tailMm: Number(input.tail), hookExtensionMm: Number(input.hookExtension), hookExtension2Mm: Number(input.hookExtension2), hookAngleDeg: Number(input.hookAngle), hookCount: Number(input.hookCount), bendCount: Number(input.bendCount), bendAllowanceMm: Number(input.bendAllowance) },
+        hooks: { returnLengthMm: Number(input.ret), crankRiseMm: Number(input.rise), crankRunMm: Number(input.run), tailMm: Number(input.tail), uBaseLengthMm: Number(input.uBaseLength), uLeg1Mm: Number(input.uLeg1), uLeg2Mm: Number(input.uLeg2), hookExtensionMm: Number(input.hookExtension), hookExtension2Mm: Number(input.hookExtension2), hookAngleDeg: Number(input.hookAngle), hookCount: Number(input.hookCount), bendCount: Number(input.bendCount), bendAllowanceMm: Number(input.bendAllowance) },
       });
       if (!Object.values(result.output).every(Number.isFinite) || !Number.isSafeInteger(result.output.totalBars)) throw Error('Inputs exceed the supported numeric range.');
       return { errors: {}, result };
@@ -81,8 +81,8 @@ window.SiteQuant.bbsModel = (() => {
     return [
       { ...defaults, mark: 'B12-01', quantity: '8', description: 'Level 02 · beam bottom main' },
       { ...defaults, family: 'Extra top', mark: 'B12-02', quantity: '8', shape: 'B', dia: '12', description: 'Level 02 · end-support returns' },
-      { ...defaults, family: 'Distribution', memberType: 'Footing', mark: 'F01-03', shape: 'C', length: '2.4', breadth: '2.4', depth: '0.6', cover: '50', quantity: '4', description: 'Footing F01 · U reinforcement' },
-      { ...defaults, family: 'Curtailment', memberType: 'Slab', mark: 'S02-08', shape: 'D', breadth: '3.6', depth: '0.2', dia: '10', spacing: '200', description: 'Level 02 · cranked reinforcement' },
+      { ...defaults, family: 'Distribution', mark: 'F01-03', memberType: 'Footing', shape: 'C', length: '2.4', breadth: '2.4', depth: '0.6', cover: '50', quantity: '4', uBaseLength: '2300', uLeg1: '500', uLeg2: '500', description: 'Footing F01 · U reinforcement' },
+      { ...defaults, family: 'Curtailment', memberType: 'Slab', mark: 'S02-08', quantity: '1', shape: 'D', breadth: '3.6', depth: '0.2', dia: '10', spacing: '200', description: 'Level 02 · cranked reinforcement' },
     ].map((input, index) => ({ id: `sample-${projectId}-${index}`, kind: 'sample', input, savedAt: '2026-09-10T10:00:00.000Z' }));
   }
 
@@ -114,7 +114,6 @@ window.SiteQuant.bbsModel = (() => {
   }
 
   function persist() {
-    // Never overwrite unreadable saved records silently.
     if (storageIssue) return { saved: false, message: storageIssue };
     try {
       localStorage.setItem(storageKey, JSON.stringify({ version: 1, projects: [...workspaces].map(([id, data]) => ({ id, ...data })) }));
@@ -122,17 +121,8 @@ window.SiteQuant.bbsModel = (() => {
     } catch { return { saved: false, message: 'Browser storage is unavailable or full. Changes are in memory only and will be lost on reload. Export valid items to keep a copy.' }; }
   }
 
-  function uniqueMark(mark, rows) {
-    const used = new Set(rows.map(row => row.input.mark.toLowerCase()));
-    let candidate = mark, index = 2;
-    while (used.has(candidate.toLowerCase())) candidate = `${mark}-${index++}`;
-    return candidate;
-  }
-
-  function newRow(input, rows) {
-    return { id: crypto.randomUUID(), kind: 'local', input: { ...input, mark: uniqueMark(input.mark.trim(), rows) }, savedAt: new Date().toISOString() };
-  }
-
+  function uniqueMark(mark, rows) { const used = new Set(rows.map(row => row.input.mark.toLowerCase())); let candidate = mark, index = 2; while (used.has(candidate.toLowerCase())) candidate = `${mark}-${index++}`; return candidate; }
+  function newRow(input, rows) { return { id: crypto.randomUUID(), kind: 'local', input: { ...input, mark: uniqueMark(input.mark.trim(), rows) }, savedAt: new Date().toISOString() }; }
   function calculatedRows(projectId) { return workspace(projectId).rows.map(row => ({ ...row, calculation: calculate(row.input).result })).filter(row => row.calculation); }
   function analysis(projectId) {
     const rows = calculatedRows(projectId);
