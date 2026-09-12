@@ -20,20 +20,18 @@
     const makeSvg = (inverted, compact) => {
       const path = inverted ? 'M55 96V25H205V96' : 'M55 25V95H205V25';
       const baseY = inverted ? 14 : 108;
-      const leftX = inverted ? 28 : 28;
-      const rightX = inverted ? 232 : 232;
-      return `<svg class="bbs-diagram ${compact ? 'bbs-diagram--compact' : ''}" viewBox="0 0 260 120" role="img" aria-label="${inverted ? 'Inverted U-bar' : 'U-bar'} schematic not to scale"><path class="bbs-diagram-guides" d="M55 ${inverted ? 96 : 25}V${inverted ? 108 : 12}M205 ${inverted ? 96 : 25}V${inverted ? 108 : 12}M55 ${baseY}H205M${leftX} ${inverted ? 25 : 95}H12M${rightX} ${inverted ? 25 : 95}H248M21 ${inverted ? 25 : 95}V${inverted ? 96 : 25}"/><path class="bbs-diagram-bar" d="${path}"/><text x="130" y="${inverted ? 116 : 112}" text-anchor="middle">BASE</text><text x="18" y="61" text-anchor="middle">LEG 1</text><text x="242" y="61" text-anchor="middle">LEG 2</text></svg>`;
+      return `<svg class="bbs-diagram ${compact ? 'bbs-diagram--compact' : ''}" data-u-shape-diagram="1" viewBox="0 0 260 120" role="img" aria-label="${inverted ? 'Inverted U-bar' : 'U-bar'} schematic not to scale"><path class="bbs-diagram-guides" d="M55 ${inverted ? 96 : 25}V${inverted ? 108 : 12}M205 ${inverted ? 96 : 25}V${inverted ? 108 : 12}M55 ${baseY}H205M28 ${inverted ? 25 : 95}H12M232 ${inverted ? 25 : 95}H248M21 ${inverted ? 25 : 95}V${inverted ? 96 : 25}"/><path class="bbs-diagram-bar" d="${path}"/><text x="130" y="${inverted ? 116 : 112}" text-anchor="middle">BASE</text><text x="18" y="61" text-anchor="middle">LEG 1</text><text x="242" y="61" text-anchor="middle">LEG 2</text></svg>`;
     };
 
     for (const code of ['C', 'I']) {
       const button = root.querySelector(`.bbs-shape[data-bbs-shape="${code}"]`);
       const compactDiagram = button?.querySelector('.bbs-diagram');
-      if (compactDiagram) compactDiagram.outerHTML = makeSvg(code === 'I', true);
+      if (compactDiagram && !compactDiagram.dataset.uShapeDiagram) compactDiagram.outerHTML = makeSvg(code === 'I', true);
     }
 
     if (['C', 'I'].includes(shape)) {
       const resultSvg = root.querySelector('#bbs-result .bbs-drawing .bbs-diagram');
-      if (resultSvg) resultSvg.outerHTML = makeSvg(shape === 'I', false);
+      if (resultSvg && !resultSvg.dataset.uShapeDiagram) resultSvg.outerHTML = makeSvg(shape === 'I', false);
       const readout = root.querySelector('#bbs-result .bbs-dimension-readout');
       const labels = ['Base', 'Leg 1', 'Leg 2'];
       if (readout) [...readout.querySelectorAll('dt')].forEach((dt, index) => { if (labels[index]) dt.textContent = labels[index]; });
@@ -60,10 +58,7 @@
 
   document.addEventListener('click', event => {
     const button = event.target.closest('.bbs-shape[data-bbs-shape]');
-    if (button) {
-      syncFamily(button);
-      setTimeout(decorate, 0);
-    }
+    if (button) setTimeout(() => { syncFamily(button); decorate(); }, 0);
   }, true);
 
   document.addEventListener('change', event => {
