@@ -7,19 +7,21 @@
   <meta name="description" content="SiteQuant Pro — a project workspace for bar bending schedules, engineering review, and construction quantities.">
   <title>Overview · SiteQuant Pro</title>
   <link rel="stylesheet" href="styles.css?v=phase2-1">
-  <link rel="stylesheet" href="bbs.css?v=stirrup-ux-3">
-  <link rel="stylesheet" href="bbs-product-ux.css?v=4">
+  <link rel="stylesheet" href="bbs.css?v=stirrup-ux-4">
+  <link rel="stylesheet" href="bbs-product-ux.css?v=5">
+  <link rel="stylesheet" href="bbs-direct-ux.css?v=1">
   <script defer src="ui.js?v=phase2-1"></script>
   <script defer src="dashboard.js?v=phase2-1"></script>
   <script defer src="bbs-engine.js?v=11"></script>
   <script defer src="bbs-catalog.js?v=phase2-u-shape-2"></script>
   <script defer src="bbs-model.js?v=u-shape-clarity-2"></script>
-  <script defer src="bbs-view.js?v=stirrup-ux-3"></script>
+  <script defer src="bbs-view.js?v=stirrup-ux-4"></script>
   <script defer src="bbs-export-enhancements.js?v=shape-export-2"></script>
-  <script defer src="bbs-workspace.js?v=stirrup-ux-3"></script>
+  <script defer src="bbs-workspace.js?v=stirrup-ux-4"></script>
   <script defer src="app.js?v=phase2-2"></script>
-  <!-- Product UX is loaded by bbs-product-bootstrap.js only after the router has mounted .bbs-workspace. -->
+  <!-- Legacy product layer is retained for exports/BOQ features; visible BBS presentation is controlled by bbs-direct-ux.js. -->
   <script defer src="bbs-product-bootstrap.js?v=2"></script>
+  <script defer src="bbs-direct-ux.js?v=1"></script>
 </head>
 <body>
   <a class="sq-skip-link" href="#view">Skip to workspace</a>
