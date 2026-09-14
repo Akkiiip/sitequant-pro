@@ -1,7 +1,11 @@
-/* Product catalog only. It deliberately contains no cut-length or weight formula. */
+/* SiteQuant Pro — reinforcement taxonomy for Indian RCC BBS workflow. */
 window.SiteQuant.bbsCatalog = (() => {
   const members = ['Beam', 'Column', 'Slab', 'Footing', 'Staircase', 'Wall', 'Pile', 'Pile Cap', 'Raft', 'Retaining Wall', 'Custom Member'];
-  const families = ['Bottom main', 'Top main', 'Extra top', 'Curtailment', 'Side-face', 'Distribution', 'Stirrups', 'Column ties', 'Support bars', 'Chairs', 'Hairpins', 'Haunch/support reinforcement'];
+  const families = [
+    'Bottom main', 'Top main', 'Extra top / support', 'Extra bottom', 'Side-face',
+    'Distribution', 'Curtailment', 'Stirrups', 'Column ties', 'Confinement',
+    'Starter / dowel', 'Chairs', 'Hairpins', 'Haunch / support'
+  ];
   const shapes = [
     ['A','Straight','COMMON','Free','engine','STRAIGHT',['L'],members],
     ['B','L-bar','BENDS','Free','engine','L_BAR',['A','B'],members],
@@ -23,6 +27,10 @@ window.SiteQuant.bbsCatalog = (() => {
     ['W','Dowel / starter','SPECIAL','Professional','planned',null,['L','Embedment'],['Column','Footing','Wall']],
     ['X','Custom multi-segment bar','SPECIAL','Professional','planned',null,['Segments'],members]
   ].map(([code,name,category,plan,calculation,engineShape,dimensions,applicableMembers]) => ({ code,name,category,plan,calculation,engineShape,dimensions,applicableMembers }));
-  const capabilities = { Free: ['Straight, L-bar and basic U-bar', 'Basic BBS and CSV preview'], Professional: ['Stirrups, ties, rings, cranked and member families', 'BBS summaries and advanced exports', 'Wastage analysis — planned'], Team: ['Shared projects and approvals — planned', 'Revision history and cutting lists — planned'] };
+  const capabilities = {
+    Free: ['Straight, L-bar and basic U-bar', 'Basic BBS and CSV preview'],
+    Professional: ['Member/family workflow', 'Stirrups, ties, rings and cranked bars', 'BBS summaries, formula trace and exports'],
+    Team: ['Shared projects and approvals — planned', 'Revision history and cutting lists — planned']
+  };
   return { members, families, shapes, categories: ['COMMON','BENDS','STIRRUPS & LINKS','SPECIAL','PREMIUM'], capabilities, byCode: code => shapes.find(shape => shape.code === code) };
 })();
